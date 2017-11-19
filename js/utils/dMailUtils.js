@@ -71,6 +71,9 @@ export const fetchMessages = (account) => {
     }
 
     return messages;
+  }, error => {
+    console.error('Failed to getUnreadCount', error);
+    throw error;
   });
 };
 
