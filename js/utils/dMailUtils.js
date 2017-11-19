@@ -11,6 +11,22 @@ import {
 
 let DMailInterface;
 
+export const getUnreadCount = account => {
+  const deferred = Q.defer();
+
+  DMailInterface.getUnreadCount({
+    from: account,
+  }, (error, result) => {
+    if (error) {
+      deferred.reject(error);
+    }
+
+    deferred.resolve(result);
+  });
+
+  return deferred.promise;
+};
+
 const getDMailAddress = (networkId) => {
   if (networkId === NETWORK_ID_PRIVATENET) {
     return DMAIL_ADDRESS_PRIVATENET;
@@ -39,26 +55,23 @@ export const fetchArchiveAddress = (owner) => {
 };
 
 export const fetchMessages = (account) => {
-  const deferred = Q.defer();
-  const messages = [];
-  const inboxLength = DMailInterface.getUnreadCount({
-    from: account,
+  return getUnreadCount(account).then(unreadCount => {
+    const messages = [];
+
+    for (let i = 0; i < unreadCount; i++) {
+      const [ sender, messageHash, sentDate ] = DMailInterface.getMail(i, {
+        from: account,
+      });
+
+      messages.push({
+        messageHash,
+        sender,
+        sentDate: sentDate.toString(),
+      });
+    }
+
+    return messages;
   });
-
-  for (let i = 0; i < inboxLength; i++) {
-    const [ sender, messageHash, sentDate ] = DMailInterface.getMail(i, {
-      from: account,
-    });
-
-    messages.push({
-      messageHash,
-      sender,
-      sentDate: sentDate.toString(),
-    });
-  }
-
-  deferred.resolve(messages);
-  return deferred.promise;
 };
 
 export const sendMail = ({ from, messageHash, to }) => {
